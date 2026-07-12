@@ -33,8 +33,16 @@ jobs:
 
       - name: ⚙️ 设置代理 (sing-box)
         env:
+          # 支持协议：vless / vmess / trojan / tuic / anytls / hysteria2 / socks5 / socks
+          # 格式：完整分享链接，如 vless://uuid@server:port?...
+          # 不配置（留空）则直连
           NODE_LINK: ${{ secrets.NODE_LINK }}
         run: |
+          if [ -z "$NODE_LINK" ]; then
+            echo "🌐 未配置 NODE_LINK，使用直连"
+            exit 0
+          fi
+          echo "🔗 代理协议: ${NODE_LINK%%://*}"
           bash <(wget -qO- https://main.ssss.nyc.mn/setup_proxy.sh)
 
       - name: 🚀 运行续期脚本
