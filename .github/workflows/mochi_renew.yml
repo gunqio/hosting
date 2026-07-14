@@ -3,16 +3,16 @@ on:
   workflow_dispatch:
   schedule:
     - cron: '0 1,13 * * *'
-  
+
 permissions:
   actions: write
   contents: read
-  
+
 jobs:
   renew:
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    
+
     steps:
       - name: 📥 拉取私库脚本
         uses: actions/checkout@v4
@@ -50,25 +50,13 @@ jobs:
           TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
           IS_PROXY: "true"
           PROXY_SERVER: "http://127.0.0.1:1081"
+          # 设置 DISPLAY 环境变量确保 Xvfb 正常工作
+          DISPLAY: ":99"
         run: |
-          xvfb-run --auto-servernum python3 hosting-aida0710.py
-
-      # ================== 新增：上传调试截图 ==================
-      - name: 📸 上传调试截图（如有）
-        if: always()   # 无论脚本成功或失败都执行，确保能捕获失败时的截图
-        uses: actions/upload-artifact@v4
-        with:
-          name: debug-screenshots
-          # 请确保您的 Python 脚本会生成以下文件（例如在登录失败或异常时调用 driver.save_screenshot()）
-          path: |
-            login_error_screenshot.png
-            exception_screenshot.png
-            page_source.html
-            exception_page.html
-            *.png
-            *.html
-          retention-days: 7
-      # =====================================================
+          # 启动 Xvfb 虚拟显示（备用，seleniumbase 的 xvfb=True 也会自动启动）
+          Xvfb :99 -screen 0 1920x1080x24 > /dev/null 2>&1 &
+          sleep 2
+          xvfb-run --auto-servernum --server-args="-screen 0 1920x1080x24" python3 hosting-aida0710.py
 
       - name: 🧽 清理进程和临时文件
         if: always()
@@ -79,8 +67,6 @@ jobs:
           pkill -f Xvfb || true
           pkill -f python || true
           rm -f sing-box sing-box-config.json sing-box.log hosting-aida0710.py
-          # 截图文件已上传，可以删除以节省空间（可选）
-          rm -f *.png *.html
 
       - name: 🧹 清理旧的工作流运行记录
         if: always()
