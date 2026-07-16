@@ -24,14 +24,14 @@ jobs:
       - name: 📂 复制脚本到工作目录
         run: cp private/hosting-aida0710.py hosting-aida0710.py
 
-      - name: 🐍 安装系统依赖和 Python 依赖
+      - name: 🐍 安装依赖
         run: |
           sudo apt-get update
           sudo apt-get install -y xvfb x11-utils xdotool scrot fonts-noto-cjk wget python3-tk python3-dev
           pip install seleniumbase requests --quiet
           seleniumbase install chromedriver
 
-      - name: ⚙️ 设置代理 (sing-box)
+      - name: ⚙️ 设置代理
         env:
           NODE_LINK: ${{ secrets.NODE_LINK }}
         run: |
@@ -50,25 +50,26 @@ jobs:
           TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
           IS_PROXY: "true"
           PROXY_SERVER: "http://127.0.0.1:1081"
-          # 设置 DISPLAY 环境变量确保 Xvfb 正常工作
-          DISPLAY: ":99"
+          SCREENSHOT_DIR: "."
         run: |
-          # 启动 Xvfb 虚拟显示（备用，seleniumbase 的 xvfb=True 也会自动启动）
-          Xvfb :99 -screen 0 1920x1080x24 > /dev/null 2>&1 &
-          sleep 2
-          xvfb-run --auto-servernum --server-args="-screen 0 1920x1080x24" python3 hosting-aida0710.py
+          python3 hosting-aida0710.py
 
-      - name: 🧽 清理进程和临时文件
+      - name: 📤 上传调试截图
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: debug-screenshots
+          path: ./*.png
+          retention-days: 3
+
+      - name: 🧽 清理
         if: always()
         run: |
           pkill -f sing-box || true
-          pkill -f chromedriver || true
-          pkill -f chrome || true
-          pkill -f Xvfb || true
-          pkill -f python || true
-          rm -f sing-box sing-box-config.json sing-box.log hosting-aida0710.py
+          pkill -f "hosting-aida0710.py" || true
+          rm -f sing-box sing-box-config.json sing-box.log hosting-aida0710.py ./*.png
 
-      - name: 🧹 清理旧的工作流运行记录
+      - name: 🧹 清理旧运行记录
         if: always()
         env:
           GH_TOKEN: ${{ github.token }}
